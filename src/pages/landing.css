@@ -1,0 +1,285 @@
+/* Standalone blue-theme landing page — intentionally isolated from the
+   app's own theme (index.css). Not linked into the Finder/Vendors/Admin
+   navigation; reachable only at /landing. Sizes use clamp()/vw so the
+   composition keeps its proportions across window sizes instead of
+   snapping to a stripped-down layout below a fixed breakpoint. */
+
+.lp {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(135deg, #d6f3ff 0%, #9fd8ff 35%, #4f8ff5 75%, #2f6fe8 100%);
+  color: #0b1b3a;
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+.lp__nav {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: clamp(1rem, 2.5vw, 1.5rem) clamp(1.25rem, 5vw, 3rem);
+}
+
+.lp__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  font-size: clamp(0.92rem, 1.3vw, 1.05rem);
+  color: #0b1b3a;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.lp__brand svg {
+  color: #1c5cf0;
+  flex-shrink: 0;
+}
+
+.lp__login {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #2f7cf6, #1650d6);
+  color: #fff;
+  border: none;
+  padding: clamp(0.5rem, 1.1vw, 0.65rem) clamp(1rem, 2.2vw, 1.3rem);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: clamp(0.82rem, 1vw, 0.92rem);
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(28, 92, 240, 0.25);
+  white-space: nowrap;
+}
+
+.lp__login:hover {
+  filter: brightness(1.05);
+}
+
+.lp__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #2f7cf6, #1650d6);
+  color: #fff;
+  border: none;
+  padding: clamp(0.55rem, 1.2vw, 0.7rem) clamp(1.1rem, 2.5vw, 1.4rem);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: clamp(0.82rem, 1vw, 0.92rem);
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(28, 92, 240, 0.25);
+  white-space: nowrap;
+}
+
+.lp__cta:hover {
+  filter: brightness(1.05);
+}
+
+.lp__hero {
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  min-height: clamp(460px, 58vh, 600px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem clamp(1.25rem, 5vw, 3rem) 0;
+}
+
+/* Scoped (and clipped) to the hero so they can never bleed into the
+   features bar below. Sized off vh (not vw) so the circles can never be
+   taller than the hero box itself — sizing them off viewport WIDTH let
+   them grow larger than a short-but-wide hero and get clipped at the
+   top/bottom by overflow:hidden. */
+.lp__hero::before,
+.lp__hero::after {
+  content: "";
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.lp__hero::before {
+  width: clamp(260px, 50vh, 460px);
+  height: clamp(260px, 50vh, 460px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-65%, -55%);
+}
+
+.lp__hero::after {
+  width: clamp(180px, 34vh, 320px);
+  height: clamp(180px, 34vh, 320px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-55%, -45%);
+}
+
+.lp__hero-content {
+  max-width: 560px;
+  width: 100%;
+  text-align: center;
+}
+
+.lp__hero-content h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2.1rem, 4.8vw, 3.4rem);
+  line-height: 1.05;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  text-shadow: 0 4px 20px rgba(10, 40, 120, 0.25);
+}
+
+.lp__hero-content p {
+  margin: 0 0 1.75rem;
+  font-size: clamp(0.92rem, 1.3vw, 1.05rem);
+  color: #0b1b3a;
+  line-height: 1.6;
+}
+
+.lp__chip {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: clamp(0.4rem, 1vw, 0.6rem);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  padding: clamp(0.35rem, 1vw, 0.5rem) clamp(0.65rem, 2vw, 1rem);
+  font-size: clamp(0.7rem, 1.1vw, 0.9rem);
+  font-weight: 600;
+  color: #0b1b3a;
+  white-space: nowrap;
+}
+
+.lp__chip-dot {
+  width: clamp(18px, 2.3vw, 26px);
+  height: clamp(18px, 2.3vw, 26px);
+  border-radius: 50%;
+  border: 2px solid rgba(11, 27, 58, 0.25);
+  flex-shrink: 0;
+}
+
+.lp__chip--label {
+  background: rgba(255, 255, 255, 0.95);
+  color: #0b1b3a;
+  padding: clamp(0.4rem, 1.1vw, 0.55rem) clamp(0.75rem, 2.2vw, 1.1rem);
+}
+
+.lp__chip--dark {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.lp__chip--1 {
+  top: 8%;
+  left: 5%;
+}
+.lp__chip--2 {
+  top: 3%;
+  left: 21%;
+}
+.lp__chip--3 {
+  top: 28%;
+  left: 3%;
+}
+.lp__chip--4 {
+  top: 44%;
+  right: 8%;
+}
+.lp__chip--5 {
+  top: 56%;
+  right: 3%;
+}
+.lp__chip--6 {
+  top: 68%;
+  right: 11%;
+}
+.lp__chip--7 {
+  top: 82%;
+  left: 28%;
+}
+
+@media (max-width: 620px) {
+  .lp__chip {
+    display: none;
+  }
+  .lp__hero::before,
+  .lp__hero::after {
+    display: none;
+  }
+  .lp__hero-content h1 {
+    white-space: normal;
+  }
+}
+
+.lp__features {
+  position: relative;
+  z-index: 2;
+  margin: clamp(1.5rem, 4vw, 2.5rem) clamp(1.25rem, 5vw, 3rem) clamp(1.5rem, 4vw, 3rem);
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  padding: clamp(1.1rem, 2.5vw, 1.5rem) clamp(1.25rem, 3vw, 2rem);
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.lp__feature {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: #0b1b3a;
+  text-decoration: none;
+  padding: 0.6rem 0.9rem;
+  margin: -0.6rem -0.9rem;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.lp__feature:hover,
+.lp__feature:focus-visible {
+  background: rgba(255, 255, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.lp__feature:active {
+  transform: translateY(0);
+}
+
+.lp__feature-icon {
+  width: clamp(36px, 3.5vw, 42px);
+  height: clamp(36px, 3.5vw, 42px);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2f7cf6, #1650d6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lp__feature-title {
+  font-weight: 700;
+  font-size: clamp(0.88rem, 1.1vw, 0.95rem);
+}
+
+.lp__feature-sub {
+  font-size: clamp(0.76rem, 1vw, 0.82rem);
+  color: #345086;
+}
