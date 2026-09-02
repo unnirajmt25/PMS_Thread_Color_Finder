@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Excel lock files (created while a workbook is open)
+~$*.xlsx
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

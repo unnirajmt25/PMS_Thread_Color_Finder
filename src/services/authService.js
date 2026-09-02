@@ -11,7 +11,7 @@
  * validating credentials server-side.
  */
 
-const ADMIN_USERNAME = "Unni";
+const ADMIN_USERNAME = "unniraj.chathukutty@idynamics.com";
 const ADMIN_PASSWORD = "Unni123";
 
 const AUTH_KEY = "thred-finder-admin-auth-v1";

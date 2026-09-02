@@ -5,7 +5,9 @@ import { formatDisplayDate } from "../utils/date";
  * Admin's "upload a vendor spreadsheet" panel. Uploading a .xlsx under a
  * label that already exists replaces that vendor's color-mapping records
  * entirely — this is how an admin updates a vendor's chart without
- * touching individual rows.
+ * touching individual rows. Existing files are managed via an Edit
+ * dialog (replace the file, or delete it) rather than a bare Delete
+ * button in the table.
  *
  * @param {{
  *   files: { label: string, fileName: string, uploadedAt: string, recordCount: number }[],
@@ -19,6 +21,7 @@ export default function VendorFiles({ files, vendors, onUpload, onDelete }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
+  const [editingFile, setEditingFile] = useState(null);
   const fileInputRef = useRef(null);
 
   async function handleFileChange(e) {
@@ -45,16 +48,6 @@ export default function VendorFiles({ files, vendors, onUpload, onDelete }) {
     } finally {
       setUploading(false);
     }
-  }
-
-  function handleDelete(fileEntry) {
-    if (
-      !window.confirm(
-        `Remove the uploaded file for "${fileEntry.label}" and all ${fileEntry.recordCount} of its mappings? This cannot be undone.`
-      )
-    )
-      return;
-    onDelete(fileEntry.label);
   }
 
   return (
@@ -135,8 +128,8 @@ export default function VendorFiles({ files, vendors, onUpload, onDelete }) {
                   <td>{f.recordCount}</td>
                   <td>{formatDisplayDate(f.uploadedAt)}</td>
                   <td className="data-table__actions">
-                    <button type="button" className="btn btn--danger btn--sm" onClick={() => handleDelete(f)}>
-                      Delete
+                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => setEditingFile(f)}>
+                      Edit
                     </button>
                   </td>
                 </tr>
@@ -145,6 +138,107 @@ export default function VendorFiles({ files, vendors, onUpload, onDelete }) {
           </table>
         </div>
       )}
+
+      {editingFile && (
+        <EditVendorFileModal
+          file={editingFile}
+          onUpload={onUpload}
+          onDelete={onDelete}
+          onClose={() => setEditingFile(null)}
+        />
+      )}
     </section>
+  );
+}
+
+function EditVendorFileModal({ file, onUpload, onDelete, onClose }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const replaceInputRef = useRef(null);
+
+  async function handleReplaceFile(e) {
+    const newFile = e.target.files?.[0];
+    e.target.value = "";
+    if (!newFile) return;
+
+    setError(null);
+    setBusy(true);
+    try {
+      await onUpload(file.label, newFile);
+      onClose();
+    } catch (err) {
+      setError(err.message ?? "Upload failed.");
+      setBusy(false);
+    }
+  }
+
+  function handleDelete() {
+    if (
+      !window.confirm(
+        `Remove the uploaded file for "${file.label}" and all ${file.recordCount} of its mappings? This cannot be undone.`
+      )
+    )
+      return;
+    onDelete(file.label);
+    onClose();
+  }
+
+  return (
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="edit-vendor-file-title">
+      <div className="modal">
+        <h2 id="edit-vendor-file-title">Edit Vendor File</h2>
+
+        <dl className="match-card__details vendor-files__edit-details">
+          <div>
+            <dt>Label</dt>
+            <dd>{file.label}</dd>
+          </div>
+          <div>
+            <dt>Current File</dt>
+            <dd>{file.fileName}</dd>
+          </div>
+          <div>
+            <dt>Mappings</dt>
+            <dd>{file.recordCount}</dd>
+          </div>
+          <div>
+            <dt>Last Updated</dt>
+            <dd>{formatDisplayDate(file.uploadedAt)}</dd>
+          </div>
+        </dl>
+
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+
+        <div className="record-form__actions vendor-files__edit-actions">
+          <button type="button" className="btn btn--danger" onClick={handleDelete} disabled={busy}>
+            Delete This File
+          </button>
+          <div className="vendor-files__edit-actions-right">
+            <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
+              Close
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => replaceInputRef.current?.click()}
+              disabled={busy}
+            >
+              {busy ? "Uploading..." : "Replace File"}
+            </button>
+            <input
+              ref={replaceInputRef}
+              type="file"
+              accept=".xlsx"
+              className="sr-only"
+              onChange={handleReplaceFile}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
