@@ -147,7 +147,8 @@ textarea {
   margin: 0;
 }
 
-.admin-page__header {
+.admin-page__header,
+.color-picker-page__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1053,6 +1054,34 @@ textarea {
 .modal h2 {
   color: var(--color-text);
   text-shadow: none;
+}
+
+.standard-colors-modal {
+  max-width: 560px;
+}
+
+.standard-colors-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.standard-colors-modal__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
+
+.standard-colors-modal__count {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.standard-colors-modal__list-wrap {
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
 .record-form__grid {
