@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import ColorSwatch from "./ColorSwatch";
+import MatchColorCard from "./MatchColorCard";
 import { isValidHex, normalizeHex } from "../utils/color";
 import { formatDisplayDate } from "../utils/date";
 import { formatUpdatedBy } from "../utils/text";
@@ -63,6 +63,17 @@ export default function ColorMatchCard({ record }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const raw = record.raw;
 
+  // The thread and PMS colors are usually the exact same hex (vendor
+  // charts only provide one RGB swatch per row, reused for both) - two
+  // stacked cards showing an identical color is just noise. Only split
+  // into two when they genuinely differ (e.g. a hand-entered record with
+  // distinct thread/PMS hex values).
+  const threadHexValid = isValidHex(record.threadHex);
+  const pmsHexValid = isValidHex(record.pmsHex);
+  const colorsDiffer =
+    threadHexValid && pmsHexValid && normalizeHex(record.threadHex) !== normalizeHex(record.pmsHex);
+  const primaryHex = hasPms && pmsHexValid ? record.pmsHex : record.threadHex;
+
   // Collapse back to closed whenever a different thread is selected, so the
   // panel doesn't stay pinned open while browsing unrelated matches.
   useEffect(() => {
@@ -90,31 +101,28 @@ export default function ColorMatchCard({ record }) {
       </p>
 
       <div className="match-card__swatches">
-        <ColorSwatch
-          hex={record.threadHex}
-          label="Thread Color Preview"
-          sublabel={record.threadColorName || record.threadCode}
-          size="lg"
-        />
-        <div className="match-card__arrow" aria-hidden="true">
-          →
-        </div>
-        {hasPms ? (
-          <ColorSwatch
-            hex={record.pmsHex}
-            label="Monitor Display Color"
-            sublabel={record.pmsName || `PMS ${record.pmsCode}`}
-            size="lg"
-          />
+        {colorsDiffer ? (
+          <>
+            <MatchColorCard
+              hex={record.threadHex}
+              label="Thread Color Preview"
+              threadCode={record.threadCode}
+              pmsCode={record.pmsCode}
+            />
+            <MatchColorCard
+              hex={record.pmsHex}
+              label="Monitor Display Color"
+              threadCode={record.threadCode}
+              pmsCode={record.pmsCode}
+            />
+          </>
         ) : (
-          <div className="color-swatch color-swatch--lg">
-            <div className="color-swatch__box color-swatch__box--empty">
-              <span className="color-swatch__placeholder">No PMS match</span>
-            </div>
-            <div className="color-swatch__meta">
-              <span className="color-swatch__label">Monitor Display Color</span>
-            </div>
-          </div>
+          <MatchColorCard
+            hex={primaryHex}
+            label={hasPms ? "Monitor Display Color" : "Thread Color Preview"}
+            threadCode={record.threadCode}
+            pmsCode={record.pmsCode}
+          />
         )}
       </div>
 
