@@ -304,7 +304,7 @@ export default function ColorPicker() {
                           }}
                           title={`${i + 1}: ${p.hex}`}
                         >
-                          {i + 1}
+                          <span className="color-picker-marker__badge">{i + 1}</span>
                         </span>
                       ))}
                 </div>

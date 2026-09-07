@@ -1194,9 +1194,26 @@ textarea {
   max-width: none;
 }
 
+/* A small dot pinned exactly at the sampled pixel, with the numbered
+   badge floating above it (not centered on top of it) so the badge never
+   hides the actual color spot it's marking. */
 .color-picker-marker {
   position: absolute;
   transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.color-picker-marker__badge {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translate(-50%, -5px);
   width: 1.4rem;
   height: 1.4rem;
   border-radius: 50%;
@@ -1209,7 +1226,6 @@ textarea {
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-  pointer-events: none;
 }
 
 .color-picker-hint {
