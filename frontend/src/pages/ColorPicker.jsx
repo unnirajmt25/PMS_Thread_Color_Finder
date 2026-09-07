@@ -266,6 +266,15 @@ export default function ColorPicker() {
 
               <div className="color-picker-toolbar">
                 <div className="color-picker-autodetect">
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    onClick={handleAutoDetect}
+                    disabled={!imageLoaded}
+                    title="Find this many dominant colors from the image's main/central area, ignoring edges and small/noisy specks"
+                  >
+                    Auto-Detect Colors
+                  </button>
                   <label htmlFor="auto-detect-count" className="color-picker-autodetect__label">
                     Colors to detect
                   </label>
@@ -283,9 +292,9 @@ export default function ColorPicker() {
                     className="btn btn--primary btn--sm"
                     onClick={handleAutoDetect}
                     disabled={!imageLoaded}
-                    title="Find this many dominant colors from the image's main/central area, ignoring edges and small/noisy specks"
+                    title="Re-run detection using the number of colors set above"
                   >
-                    Auto-Detect Colors
+                    Done
                   </button>
                 </div>
                 <button
