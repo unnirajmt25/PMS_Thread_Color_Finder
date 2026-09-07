@@ -154,7 +154,11 @@ export default function ColorPicker() {
     if (!canvas || !imageLoaded) return;
     const imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
     const dominant = extractDominantColors(imageData, { count: autoDetectCount });
-    setPicks(dominant.map(({ hex, r, g, b }) => ({ id: generateId(), hex, r, g, b, x: null, y: null })));
+    // Marker position is that color's centroid (average location of its
+    // occurrences) - same numbered-dot treatment a manual click gets, so
+    // it's obvious at a glance which parts of the image contributed a
+    // color to the palette and which didn't.
+    setPicks(dominant.map(({ hex, r, g, b, x, y }) => ({ id: generateId(), hex, r, g, b, x, y })));
   }
 
   function handleAutoDetectCountChange(value) {

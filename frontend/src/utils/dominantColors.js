@@ -51,8 +51,11 @@ function rgbToHex(r, g, b) {
  *   outer 8% on every side, sampling only the central 84%).
  *   `minCoverageRatio` is the minimum fraction of *sampled* (i.e.
  *   central-area) pixels a color must cover to be eligible at all.
- * @returns {{ hex: string, r: number, g: number, b: number, coverage: number }[]}
- *   `coverage` is that color's share of the sampled pixels (0-1).
+ * @returns {{ hex: string, r: number, g: number, b: number, coverage: number, x: number, y: number }[]}
+ *   `coverage` is that color's share of the sampled pixels (0-1). `x`/`y`
+ *   are the centroid (average position) of that color's occurrences, in
+ *   image pixel coordinates - a representative spot to drop a numbered
+ *   marker on the source image, same as a manual click does.
  */
 export function extractDominantColors(
   imageData,
@@ -77,9 +80,11 @@ export function extractDominantColors(
         bucket.rSum += r;
         bucket.gSum += g;
         bucket.bSum += b;
+        bucket.xSum += x;
+        bucket.ySum += y;
         bucket.count += 1;
       } else {
-        buckets.set(key, { rSum: r, gSum: g, bSum: b, count: 1 });
+        buckets.set(key, { rSum: r, gSum: g, bSum: b, xSum: x, ySum: y, count: 1 });
       }
       sampled++;
     }
@@ -95,6 +100,8 @@ export function extractDominantColors(
       r: Math.round(bucket.rSum / bucket.count),
       g: Math.round(bucket.gSum / bucket.count),
       b: Math.round(bucket.bSum / bucket.count),
+      x: Math.round(bucket.xSum / bucket.count),
+      y: Math.round(bucket.ySum / bucket.count),
       coverage: bucket.count / sampled,
     }))
     .sort((a, b) => b.coverage - a.coverage);
@@ -120,5 +127,5 @@ export function extractDominantColors(
     }
   }
 
-  return picked.map(({ r, g, b, coverage }) => ({ r, g, b, coverage, hex: rgbToHex(r, g, b) }));
+  return picked.map(({ r, g, b, x, y, coverage }) => ({ r, g, b, x, y, coverage, hex: rgbToHex(r, g, b) }));
 }
