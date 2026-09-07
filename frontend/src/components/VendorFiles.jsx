@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { formatDisplayDateTime } from "../utils/date";
-import { vendorLabelMatchesFileName, vendorLabelFromFileName } from "../utils/text";
+import { vendorLabelMatchesFileName } from "../utils/text";
 
 function summaryLine(count) {
   const padded = String(count).padStart(2, "0");
@@ -8,9 +8,9 @@ function summaryLine(count) {
 }
 
 /**
- * Admin's "upload a vendor thread chart" panel. Accepts .xlsx or .pdf,
- * singly or in a batch (select multiple files at once). Uploading under a
- * label that already exists replaces that vendor's color-mapping records
+ * Admin's "upload a vendor thread chart" panel. Accepts .xlsx or .pdf, one
+ * file at a time under an explicit vendor label. Uploading under a label
+ * that already exists replaces that vendor's color-mapping records
  * entirely — this is how an admin updates a vendor's chart without
  * touching individual rows, so replacing always asks for confirmation
  * first. PDF extraction is best-effort (it reconstructs a table from the
@@ -37,7 +37,20 @@ export default function VendorFiles({ files, vendors, onUpload, onDelete }) {
     return files.find((f) => f.label === vendorLabel);
   }
 
-  async function uploadSingle(trimmedLabel, file) {
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setError(null);
+    setMessage(null);
+
+    const trimmedLabel = label.trim();
+    if (!trimmedLabel) {
+      setError("Enter a vendor label before choosing a file.");
+      return;
+    }
+
     if (!vendorLabelMatchesFileName(trimmedLabel, file.name)) {
       setError(
         `"${file.name}" doesn't look like it belongs to "${trimmedLabel}" — double-check you picked the right vendor before uploading.`
@@ -65,77 +78,19 @@ export default function VendorFiles({ files, vendors, onUpload, onDelete }) {
     }
   }
 
-  async function uploadBatch(selectedFiles) {
-    const plan = selectedFiles.map((file) => ({ file, label: vendorLabelFromFileName(file.name) }));
-
-    const duplicateLabels = plan.map((p) => p.label).filter((l) => findExisting(l));
-    if (duplicateLabels.length > 0) {
-      const proceed = window.confirm(
-        `${duplicateLabels.length} of these ${plan.length} files match a vendor that already has a file:\n\n${duplicateLabels.join("\n")}\n\nUploading will replace their existing mappings. Continue?`
-      );
-      if (!proceed) return;
-    }
-
-    setUploading(true);
-    let succeeded = 0;
-    const failures = [];
-    for (const { file, label: derivedLabel } of plan) {
-      try {
-        await onUpload(derivedLabel, file);
-        succeeded++;
-      } catch (err) {
-        failures.push({ file: file.name, reason: err.message ?? "Upload failed." });
-      }
-    }
-    setUploading(false);
-
-    const line = summaryLine(succeeded);
-    if (failures.length === 0) {
-      setMessage(line);
-    } else {
-      const failureText = `${failures.length} failed: ${failures.map((f) => `${f.file} (${f.reason})`).join("; ")}`;
-      if (succeeded === 0) {
-        setError(failureText);
-      } else {
-        setMessage(`${line} ${failureText}`);
-      }
-    }
-  }
-
-  async function handleFileChange(e) {
-    const selectedFiles = Array.from(e.target.files ?? []);
-    e.target.value = "";
-    if (selectedFiles.length === 0) return;
-
-    setError(null);
-    setMessage(null);
-
-    // One file with a vendor label already typed in -> that explicit
-    // single-vendor flow (name-validated against the label). Anything
-    // else (multiple files, or no label typed) -> batch, where each
-    // file's vendor is derived from its own filename instead.
-    if (selectedFiles.length === 1 && label.trim()) {
-      await uploadSingle(label.trim(), selectedFiles[0]);
-    } else {
-      await uploadBatch(selectedFiles);
-    }
-  }
-
   return (
     <section className="vendor-files">
       <h2>Vendor Files</h2>
       <p>
-        Upload a vendor's Thread Chart as .xlsx or .pdf — one at a time with a vendor label typed in below, or select
-        several files at once as a batch (each file's vendor is then taken from its own file name). Uploading under a
-        label that already exists replaces that vendor's mappings with the new file, after confirming. PDF tables are
-        extracted on a best-effort basis — it needs an actual text-based Thread Number / PMS Number table, not a
-        scanned image or a link list.
+        Upload a vendor's Thread Chart as .xlsx or .pdf. Uploading under a label that already exists replaces that
+        vendor's mappings with the new file, after confirming. PDF tables are extracted on a best-effort basis — it
+        needs an actual text-based Thread Number / PMS Number table, not a scanned image or a link list.
       </p>
 
       <div className="vendor-files__upload">
         <div className="field">
           <label htmlFor="vendor-file-label" className="field__label">
-            Vendor Label <span className="field__hint">(single upload only — leave blank for a batch)</span>
+            Vendor Label
           </label>
           <input
             id="vendor-file-label"
@@ -158,13 +113,12 @@ export default function VendorFiles({ files, vendors, onUpload, onDelete }) {
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
         >
-          {uploading ? "Uploading..." : "Upload File(s)"}
+          {uploading ? "Uploading..." : "Upload File"}
         </button>
         <input
           ref={fileInputRef}
           type="file"
           accept=".xlsx,.pdf"
-          multiple
           className="sr-only"
           onChange={handleFileChange}
         />

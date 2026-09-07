@@ -36,8 +36,3 @@ export function vendorLabelMatchesFileName(label, fileName) {
   if (!a || !b) return true; // nothing meaningful to compare - don't block
   return a.includes(b) || b.includes(a);
 }
-
-/** Derives a vendor label from an uploaded file's name for batch uploads. */
-export function vendorLabelFromFileName(fileName) {
-  return String(fileName ?? "").replace(/\.(xlsx|pdf)$/i, "").trim();
-}
