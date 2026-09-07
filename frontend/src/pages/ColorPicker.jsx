@@ -2,10 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useColorData } from "../hooks/useColorData";
 import VendorSelector from "../components/VendorSelector";
 import OptionSelector from "../components/OptionSelector";
-import ColorSwatch from "../components/ColorSwatch";
 import { findClosestThreads } from "../utils/colorMatch";
 import { extractDominantColors } from "../utils/dominantColors";
-import { generateId } from "../utils/color";
+import { generateId, isValidHex } from "../utils/color";
 
 const ZOOM_STEP = 0.25;
 const MIN_ZOOM = 0.5;
@@ -26,6 +25,53 @@ function hexToRgbTriplet(hex) {
     g: parseInt(n.slice(2, 4), 16),
     b: parseInt(n.slice(4, 6), 16),
   };
+}
+
+function CopyIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="7" y="7" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d="M4.5 13.5H3.75A1.75 1.75 0 0 1 2 11.75v-8A1.75 1.75 0 0 1 3.75 2h8A1.75 1.75 0 0 1 13.5 3.75V4.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+    </svg>
+  );
+}
+
+/** A single "Closest Matches" swatch, with click-to-copy on the PMS code. */
+function ClosestMatch({ record, distance }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopyPms() {
+    if (!record.pmsCode) return;
+    try {
+      await navigator.clipboard.writeText(record.pmsCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard unavailable - the code is still visible to copy by hand
+    }
+  }
+
+  return (
+    <div className="color-picker-match" title={`Distance: ${distance.toFixed(1)}`}>
+      <div
+        className={`color-picker-match__swatch${isValidHex(record.threadHex) ? "" : " color-picker-match__swatch--empty"}`}
+        style={isValidHex(record.threadHex) ? { backgroundColor: record.threadHex } : undefined}
+      />
+      <div className="color-picker-match__code">{record.threadCode}</div>
+      {record.pmsCode ? (
+        <button type="button" className="color-picker-match__pms" onClick={handleCopyPms}>
+          {copied ? "Copied!" : `PMS ${record.pmsCode}`}
+          <CopyIcon />
+        </button>
+      ) : (
+        <span className="color-picker-match__pms color-picker-match__pms--muted">No PMS match</span>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -382,12 +428,8 @@ export default function ColorPicker() {
               const matches = readyToMatch ? findClosestThreads(pick.hex, scopedRecords, MATCHES_PER_PICK) : [];
               return (
                 <li className="color-picker-pick" key={pick.id}>
-                  <div className="color-picker-pick__header">
+                  <div className="color-picker-pick__topbar">
                     <span className="color-picker-pick__index">{index + 1}</span>
-                    <ColorSwatch hex={pick.hex} label="Selected color" sublabel={pick.hex.toUpperCase()} />
-                    <span className="color-picker-pick__rgb">
-                      RGB {pick.r}, {pick.g}, {pick.b}
-                    </span>
                     <button
                       type="button"
                       className="btn btn--ghost btn--sm color-picker-pick__remove"
@@ -398,28 +440,53 @@ export default function ColorPicker() {
                     </button>
                   </div>
 
-                  {readyToMatch && (
+                  <div className="color-picker-pick__body">
+                    <div className="color-picker-pick__selected">
+                      <h3>Selected Color</h3>
+                      <div className="color-picker-pick__selected-swatch" style={{ backgroundColor: pick.hex }} />
+                      <dl className="color-picker-pick__selected-info">
+                        <div>
+                          <dt>Hex</dt>
+                          <dd>{pick.hex.toUpperCase()}</dd>
+                        </div>
+                        <div>
+                          <dt>RGB</dt>
+                          <dd>
+                            {pick.r}, {pick.g}, {pick.b}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+
                     <div className="color-picker-pick__matches">
-                      <span className="color-picker-pick__matches-label">Closest thread matches</span>
-                      {matches.length === 0 && (
+                      <div className="color-picker-pick__matches-header">
+                        <h3>Closest Matches</h3>
+                        {readyToMatch && matches.length > 0 && (
+                          <span className="color-picker-pick__matches-caption">
+                            Top {matches.length} match{matches.length === 1 ? "" : "es"} (by color similarity)
+                          </span>
+                        )}
+                      </div>
+
+                      {!readyToMatch && (
+                        <p className="color-picker-empty color-picker-empty--sm">
+                          Select a vendor and thread chart above to see matches.
+                        </p>
+                      )}
+                      {readyToMatch && matches.length === 0 && (
                         <p className="color-picker-empty color-picker-empty--sm">
                           No threads with a recorded color in this chart.
                         </p>
                       )}
-                      <div className="color-picker-pick__matches-list">
-                        {matches.map(({ record, distance }) => (
-                          <div className="color-picker-match" key={record.id} title={`Distance: ${distance.toFixed(1)}`}>
-                            <ColorSwatch
-                              hex={record.threadHex}
-                              label={record.threadColorName || record.threadCode}
-                              sublabel={`${record.threadCode}${record.pmsCode ? ` · PMS ${record.pmsCode}` : ""}`}
-                              size="sm"
-                            />
-                          </div>
-                        ))}
-                      </div>
+                      {readyToMatch && matches.length > 0 && (
+                        <div className="color-picker-pick__matches-grid">
+                          {matches.map(({ record, distance }) => (
+                            <ClosestMatch key={record.id} record={record} distance={distance} />
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </li>
               );
             })}
