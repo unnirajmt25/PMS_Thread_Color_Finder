@@ -3,8 +3,40 @@ import { fallbackSeed } from "../data/colorMappings";
 import { generateId } from "../utils/color";
 import { parseWorkbookToRecords } from "../utils/threadChartParser";
 import { parsePdfToRecords } from "../utils/pdfThreadParser";
+import { buildVendorWorkbook } from "../utils/xlsxBuilder";
 import { csvToRecords, recordsToCsv } from "./csv";
 import { ADMIN_USERNAME } from "./authService";
+import { putFile, getFile, deleteFile } from "./fileStore";
+
+// Bundled vendor charts (from Thread Chart/, copied to public/thread-charts/
+// by scripts/generate-thread-data.mjs) are downloadable via a plain static
+// URL. Files behind an Admin upload have no such URL - they're stored as
+// Blobs in IndexedDB (see fileStore.js) instead, keyed by vendor label and
+// referenced by this marker so the UI knows which resolution path to use.
+const UPLOADED_SOURCE_PREFIX = "idb:";
+
+export function getStaticChartFileUrl(fileName) {
+  return `${import.meta.env.BASE_URL}thread-charts/${encodeURIComponent(fileName)}`;
+}
+
+export function isUploadedSource(sourceFile) {
+  return typeof sourceFile === "string" && sourceFile.startsWith(UPLOADED_SOURCE_PREFIX);
+}
+
+function uploadedSourceMarker(label) {
+  return `${UPLOADED_SOURCE_PREFIX}${label}`;
+}
+
+function uploadedSourceLabel(sourceFile) {
+  return isUploadedSource(sourceFile) ? sourceFile.slice(UPLOADED_SOURCE_PREFIX.length) : null;
+}
+
+/** Resolves an uploaded/generated vendor file's Blob for download, or null if it's gone. */
+export async function getUploadedFileBlob(sourceFile) {
+  const label = uploadedSourceLabel(sourceFile);
+  if (!label) return null;
+  return getFile(label);
+}
 
 /**
  * Data-access layer for the color-mapping database.
@@ -13,23 +45,26 @@ import { ADMIN_USERNAME } from "./authService";
  * that means: the real dataset ships as a static JSON asset
  * (`public/data/color-mappings.json`, generated from the vendor thread
  * charts by `scripts/generate-thread-data.mjs`) fetched once at startup,
- * with any admin edits persisted as an overlay in `localStorage`. Every
- * export here returns a Promise and every mutation goes through the same
- * validate -> persist -> notify pipeline, so swapping this file's
- * internals for `fetch()` calls against a REST API, Supabase, Firebase, or
- * Postgres would not require any change to components, pages, or hooks.
+ * with any admin edits persisted as an overlay in IndexedDB (see
+ * fileStore.js — the full dataset is 5MB+, well past what localStorage
+ * can reliably hold; a `setItem` that silently exceeds quota used to fail
+ * every save with no visible error at all). Every export here returns a
+ * Promise and every mutation goes through the same validate -> persist ->
+ * notify pipeline, so swapping this file's internals for `fetch()` calls
+ * against a REST API, Supabase, Firebase, or Postgres would not require
+ * any change to components, pages, or hooks.
  */
 
-const STORAGE_KEY = "thred-finder-db-v1";
+const RECORDS_CACHE_KEY = "__records_cache__";
 const DATA_URL = `${import.meta.env.BASE_URL}data/color-mappings.json`;
 const SIMULATED_LATENCY_MS = 150;
 
 // Bump this whenever the shape or source of the pristine dataset changes
-// (e.g. the vendor thread charts were regenerated). Any localStorage
-// cache written under an older version is treated as stale and discarded
-// in favor of a fresh fetch — otherwise a browser that cached data before
-// a change (e.g. back when only the small bundled sample existed) would
-// keep serving that stale snapshot forever, since admin edits are
+// (e.g. the vendor thread charts were regenerated). Any cache written
+// under an older version is treated as stale and discarded in favor of a
+// fresh fetch — otherwise a browser that cached data before a change
+// (e.g. back when only the small bundled sample existed) would keep
+// serving that stale snapshot forever, since admin edits are
 // intentionally allowed to persist across reloads.
 const SEED_VERSION = 5;
 
@@ -39,24 +74,20 @@ function delay(ms = SIMULATED_LATENCY_MS) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function readStore() {
+async function readStore() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed?.version !== SEED_VERSION || !Array.isArray(parsed.records)) return null;
-    return parsed.records;
+    const stored = await getFile(RECORDS_CACHE_KEY);
+    if (!stored || stored.version !== SEED_VERSION || !Array.isArray(stored.records)) return null;
+    return stored.records;
   } catch {
     return null;
   }
 }
 
-function writeStore(records) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SEED_VERSION, records }));
-  } catch (err) {
-    console.warn("Could not persist color database to localStorage:", err);
-  }
+// Deliberately does NOT swallow failures - a caller that doesn't notice a
+// save didn't happen will confidently tell the admin it did.
+async function writeStore(records) {
+  await putFile(RECORDS_CACHE_KEY, { version: SEED_VERSION, records });
 }
 
 // Registry of vendor spreadsheets uploaded through Admin's "Upload Vendor
@@ -107,12 +138,12 @@ async function fetchPristineData() {
 
 let cache = [];
 
-// Any admin edits made previously are persisted to localStorage and take
-// over as the working copy. Until then, every load re-fetches the JSON
-// asset fresh, so regenerating that file (updated vendor charts) is picked
-// up automatically without touching any application code.
+// Any admin edits made previously are persisted and take over as the
+// working copy. Until then, every load re-fetches the JSON asset fresh, so
+// regenerating that file (updated vendor charts) is picked up automatically
+// without touching any application code.
 const initPromise = (async () => {
-  const existing = readStore();
+  const existing = await readStore();
   if (existing) {
     cache = existing;
     return;
@@ -134,9 +165,13 @@ function notify() {
   for (const listener of listeners) listener(cache);
 }
 
-function persist(next) {
+// Writes durably BEFORE updating the in-memory cache/notifying subscribers,
+// so a failed save throws (surfacing as a normal error to whichever Admin
+// action triggered it) instead of the UI optimistically showing a change
+// that didn't actually stick.
+async function persist(next) {
+  await writeStore(next);
   cache = next;
-  writeStore(cache);
   notify();
 }
 
@@ -255,7 +290,7 @@ export async function addRecord(input) {
   const record = { ...BLANK_FIELDS, ...input };
   validateRecord(record);
   const withId = { ...record, id: generateId(), updatedAt: today(), updatedBy: ADMIN_USERNAME };
-  persist([...cache, withId]);
+  await persist([...cache, withId]);
   return withId;
 }
 
@@ -266,32 +301,72 @@ export async function updateRecord(id, patch) {
   const next = { ...current, ...patch };
   validateRecord(next, { ignoreId: id });
   const updated = { ...next, updatedAt: today(), updatedBy: ADMIN_USERNAME };
-  persist(cache.map((r) => (r.id === id ? updated : r)));
+  await persist(cache.map((r) => (r.id === id ? updated : r)));
   return updated;
 }
 
 export async function deleteRecord(id) {
   await ready();
-  persist(cache.filter((r) => r.id !== id));
+  await persist(cache.filter((r) => r.id !== id));
 }
 
 export async function deleteVendor(vendor) {
   await ready();
-  persist(cache.filter((r) => r.vendor !== vendor));
+  await persist(cache.filter((r) => r.vendor !== vendor));
   removeVendorFileEntry(vendor);
+  await deleteFile(vendor);
 }
 
 export async function renameVendor(oldName, newName) {
   await ready();
   const trimmed = newName.trim();
   if (!trimmed) throw new ValidationError("Vendor name is required.", { vendor: "Required" });
-  persist(
+
+  // IndexedDB has no rename - move the blob (if this vendor has one) to a
+  // key under the new label, and repoint any records that referenced it.
+  const uploadedBlob = await getFile(oldName);
+  if (uploadedBlob) {
+    await putFile(trimmed, uploadedBlob);
+    await deleteFile(oldName);
+  }
+  const newMarker = uploadedBlob ? uploadedSourceMarker(trimmed) : null;
+
+  await persist(
     cache.map((r) =>
-      r.vendor === oldName ? { ...r, vendor: trimmed, updatedAt: today(), updatedBy: ADMIN_USERNAME } : r
+      r.vendor === oldName
+        ? {
+            ...r,
+            vendor: trimmed,
+            sourceFile: isUploadedSource(r.sourceFile) && newMarker ? newMarker : r.sourceFile,
+            updatedAt: today(),
+            updatedBy: ADMIN_USERNAME,
+          }
+        : r
     )
   );
   const existingFile = vendorFiles.find((f) => f.label === oldName);
   if (existingFile) upsertVendorFileEntry({ ...existingFile, label: trimmed });
+}
+
+async function resolveTemplateBuffer(label) {
+  const uploadedBlob = await getFile(label);
+  if (uploadedBlob) {
+    try {
+      return await uploadedBlob.arrayBuffer();
+    } catch {
+      // corrupt stored blob - fall through to the other lookup path
+    }
+  }
+  const bundledRecord = cache.find((r) => r.vendor === label && r.sourceFile && !isUploadedSource(r.sourceFile));
+  if (bundledRecord) {
+    try {
+      const res = await fetch(getStaticChartFileUrl(bundledRecord.sourceFile));
+      if (res.ok) return await res.arrayBuffer();
+    } catch {
+      // no network / file missing - no template available
+    }
+  }
+  return null;
 }
 
 function fileKind(file) {
@@ -334,6 +409,7 @@ export async function uploadVendorFile(label, file) {
   let matchCount; // sheets (xlsx) or tables (pdf) successfully parsed
   let skippedNoThreadNumber;
   let duplicates;
+  let sourceBlob; // what gets stored as this vendor's downloadable file
 
   if (kind === "xlsx") {
     let workbook;
@@ -354,6 +430,9 @@ export async function uploadVendorFile(label, file) {
     matchCount = result.sheetsParsed;
     skippedNoThreadNumber = result.skippedNoThreadNumber;
     duplicates = result.duplicates;
+    // Already a real, fully-styled Excel file - store the upload verbatim
+    // rather than round-tripping it through a rebuild.
+    sourceBlob = file;
   } else {
     let result;
     try {
@@ -377,10 +456,32 @@ export async function uploadVendorFile(label, file) {
     );
   }
 
-  // Replace: this label's previous records (if any) are fully superseded.
-  persist([...cache.filter((r) => r.vendor !== trimmedLabel), ...parsed]);
+  if (kind === "pdf") {
+    // A PDF has no native "Excel file" of its own - build one from the
+    // extracted rows so this vendor still gets a real, downloadable chart
+    // that a designer can cross-check the app's matches against. Reuses
+    // the vendor's existing chart (if any) as a structural/style template
+    // so sheets that already existed keep their exact column layout and
+    // formatting; brand-new thread lines fall back to the standard layout.
+    const templateBuffer = await resolveTemplateBuffer(trimmedLabel);
+    const recordsByBrand = new Map();
+    for (const record of parsed) {
+      if (!recordsByBrand.has(record.threadBrand)) recordsByBrand.set(record.threadBrand, []);
+      recordsByBrand.get(record.threadBrand).push(record);
+    }
+    const xlsxBuffer = await buildVendorWorkbook({ templateBuffer, recordsByBrand });
+    sourceBlob = new Blob([xlsxBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+  }
 
-  const entry = { label: trimmedLabel, fileName: file.name, uploadedAt: updatedAt, recordCount: parsed.length };
+  await putFile(trimmedLabel, sourceBlob);
+  const stamped = parsed.map((r) => ({ ...r, sourceFile: uploadedSourceMarker(trimmedLabel) }));
+
+  // Replace: this label's previous records (if any) are fully superseded.
+  await persist([...cache.filter((r) => r.vendor !== trimmedLabel), ...stamped]);
+
+  const entry = { label: trimmedLabel, fileName: file.name, uploadedAt: updatedAt, recordCount: stamped.length };
   upsertVendorFileEntry(entry);
 
   return { ...entry, skippedNoThreadNumber, duplicates };
@@ -393,8 +494,9 @@ export async function getVendorFiles() {
 
 export async function deleteVendorFile(label) {
   await ready();
-  persist(cache.filter((r) => r.vendor !== label));
+  await persist(cache.filter((r) => r.vendor !== label));
   removeVendorFileEntry(label);
+  await deleteFile(label);
 }
 
 /**
@@ -436,7 +538,7 @@ export async function importCsv(text) {
     }
   }
 
-  persist(next);
+  await persist(next);
   return { added, updated, skipped };
 }
 
@@ -453,9 +555,9 @@ export async function exportCsv(records) {
 export async function resetToSeed() {
   await ready();
   try {
-    persist(await fetchPristineData());
+    await persist(await fetchPristineData());
   } catch (err) {
     console.warn("Falling back to bundled sample data:", err);
-    persist([...fallbackSeed]);
+    await persist([...fallbackSeed]);
   }
 }

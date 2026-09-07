@@ -52,7 +52,10 @@ export function normalizePms(raw) {
   return { code: spaced, name: `PMS ${spaced}` };
 }
 
-function headerIndexMap(headerRow) {
+// Exported so xlsxBuilder.js can locate the same columns (by header text,
+// not fixed position) in a template workbook when rebuilding a sheet -
+// vendor files don't all order/include columns identically.
+export function headerIndexMap(headerRow) {
   const map = {};
   headerRow.forEach((h, i) => {
     const key = String(h ?? "").trim().toLowerCase();
@@ -61,7 +64,7 @@ function headerIndexMap(headerRow) {
   return map;
 }
 
-function col(map, ...names) {
+export function col(map, ...names) {
   for (const name of names) {
     const idx = map[name.toLowerCase()];
     if (idx !== undefined) return idx;
@@ -79,10 +82,30 @@ function col(map, ...names) {
  * @param {Array<Array<string|number>>} rows
  * @param {string} vendor
  * @param {string} threadBrand
- * @param {{ updatedAt: string, updatedBy?: string, seenKeys?: Set<string> }} opts
+ * @param {{
+ *   updatedAt: string,
+ *   updatedBy?: string,
+ *   seenKeys?: Set<string>,
+ *   groupByRowThreadChart?: boolean,
+ * }} opts
+ *   `groupByRowThreadChart`: when true, a row whose own "Thread Chart"
+ *   column has a value uses THAT as its threadBrand instead of the
+ *   `threadBrand` argument. Needed for PDFs, which have no sheet-name
+ *   equivalent to reliably group by otherwise - without this every row on
+ *   a page would be lumped under one placeholder brand regardless of what
+ *   its own "Thread Chart" cell says. Left off (default) for the xlsx
+ *   path, where the sheet name is already the authoritative grouping and
+ *   the "Thread Chart" column is often a different, shorter product code
+ *   (e.g. sheet "Robison Anton SS Rayon" vs. column value "RA SSR 9") that
+ *   would wrongly override it.
  * @returns {{ records: object[], skippedNoThreadNumber: number, duplicates: number, matched: boolean }}
  */
-export function parseTableRows(rows, vendor, threadBrand, { updatedAt, updatedBy = "", seenKeys = new Set() } = {}) {
+export function parseTableRows(
+  rows,
+  vendor,
+  threadBrand,
+  { updatedAt, updatedBy = "", seenKeys = new Set(), groupByRowThreadChart = false } = {}
+) {
   const records = [];
   let duplicates = 0;
   let skippedNoThreadNumber = 0;
@@ -115,6 +138,9 @@ export function parseTableRows(rows, vendor, threadBrand, { updatedAt, updatedBy
     const threadName = iName !== -1 ? String(row[iName] ?? "").trim() : "";
     const threadColorName = threadName && threadName.toUpperCase() !== "NA" ? threadName : "";
 
+    const rowThreadChart = iChart !== -1 ? String(row[iChart] ?? "").trim() : "";
+    const rowThreadBrand = groupByRowThreadChart && rowThreadChart ? rowThreadChart : threadBrand;
+
     const r = iR !== -1 ? Number(row[iR]) : NaN;
     const g = iG !== -1 ? Number(row[iG]) : NaN;
     const b = iB !== -1 ? Number(row[iB]) : NaN;
@@ -124,7 +150,7 @@ export function parseTableRows(rows, vendor, threadBrand, { updatedAt, updatedBy
     const rawPmsValue = iPms !== -1 ? row[iPms] : "";
     const { code: pmsCode, name: pmsName } = normalizePms(rawPmsValue);
 
-    const key = `${vendor}|${threadBrand}|${threadCode}|${pmsCode}`.toLowerCase();
+    const key = `${vendor}|${rowThreadBrand}|${threadCode}|${pmsCode}`.toLowerCase();
     if (seenKeys.has(key)) {
       duplicates++;
       continue;
@@ -134,7 +160,7 @@ export function parseTableRows(rows, vendor, threadBrand, { updatedAt, updatedBy
     records.push({
       id: generateId(),
       vendor,
-      threadBrand,
+      threadBrand: rowThreadBrand,
       threadCode: String(threadCode).trim(),
       threadColorName,
       threadHex: hex,

@@ -124,6 +124,7 @@ export async function parsePdfToRecords(arrayBuffer, vendor, { updatedAt, update
             updatedAt,
             updatedBy,
             seenKeys,
+            groupByRowThreadChart: true,
           });
           if (result.matched) {
             tablesFound++;
@@ -146,6 +147,7 @@ export async function parsePdfToRecords(arrayBuffer, vendor, { updatedAt, update
         updatedAt,
         updatedBy,
         seenKeys,
+        groupByRowThreadChart: true,
       });
       if (result.matched) {
         tablesFound++;

@@ -3,9 +3,56 @@ import ColorSwatch from "./ColorSwatch";
 import { isValidHex, normalizeHex } from "../utils/color";
 import { formatDisplayDate } from "../utils/date";
 import { formatUpdatedBy } from "../utils/text";
+import { getStaticChartFileUrl, isUploadedSource, getUploadedFileBlob } from "../services/colorService";
 
-function chartFileUrl(fileName) {
-  return `${import.meta.env.BASE_URL}thread-charts/${encodeURIComponent(fileName)}`;
+/**
+ * Bundled charts are a plain static file, so a normal `<a href download>`
+ * works. Admin-uploaded/PDF-converted charts live as a Blob in IndexedDB
+ * instead (no URL to link to), so those need to be fetched and turned into
+ * a temporary object URL on click.
+ */
+function DownloadChartButton({ record }) {
+  const [status, setStatus] = useState("idle"); // idle | loading | error
+  const uploaded = isUploadedSource(record.sourceFile);
+
+  if (!uploaded) {
+    return (
+      <a className="btn btn--primary" href={getStaticChartFileUrl(record.sourceFile)} download>
+        Download Chart
+      </a>
+    );
+  }
+
+  async function handleClick() {
+    setStatus("loading");
+    const blob = await getUploadedFileBlob(record.sourceFile);
+    if (!blob) {
+      setStatus("error");
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${record.vendor}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setStatus("idle");
+  }
+
+  return (
+    <>
+      <button type="button" className="btn btn--primary" onClick={handleClick} disabled={status === "loading"}>
+        {status === "loading" ? "Preparing..." : "Download Chart"}
+      </button>
+      {status === "error" && (
+        <span className="match-card__raw-empty" role="alert">
+          Couldn't find this file — it may have been uploaded in a different browser.
+        </span>
+      )}
+    </>
+  );
 }
 
 /**
@@ -182,9 +229,7 @@ export default function ColorMatchCard({ record }) {
 
             <div className="match-card__raw-actions">
               {record.sourceFile ? (
-                <a className="btn btn--primary" href={chartFileUrl(record.sourceFile)} download>
-                  Download Chart
-                </a>
+                <DownloadChartButton record={record} />
               ) : (
                 <span className="match-card__raw-empty">
                   Original file not available for hand-entered records.
