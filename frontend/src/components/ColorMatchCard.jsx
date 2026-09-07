@@ -1,13 +1,36 @@
+import { useEffect, useState } from "react";
 import ColorSwatch from "./ColorSwatch";
-import { isValidHex } from "../utils/color";
+import { isValidHex, normalizeHex } from "../utils/color";
 import { formatDisplayDate } from "../utils/date";
 import { formatUpdatedBy } from "../utils/text";
+
+function chartFileUrl(fileName) {
+  return `${import.meta.env.BASE_URL}thread-charts/${encodeURIComponent(fileName)}`;
+}
 
 /**
  * @param {{ record: import('../types').ColorMapping }} props
  */
 export default function ColorMatchCard({ record }) {
   const hasPms = Boolean(record.pmsCode?.trim());
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const raw = record.raw;
+
+  // Collapse back to closed whenever a different thread is selected, so the
+  // panel doesn't stay pinned open while browsing unrelated matches.
+  useEffect(() => {
+    setShowAdvanced(false);
+  }, [record.id]);
+
+  const rawHex =
+    raw && Number.isFinite(raw.r) && Number.isFinite(raw.g) && Number.isFinite(raw.b)
+      ? normalizeHex(
+          "#" +
+            [raw.r, raw.g, raw.b]
+              .map((n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0"))
+              .join("")
+        )
+      : "";
 
   return (
     <section className="match-card" aria-labelledby="match-card-heading">
@@ -90,6 +113,87 @@ export default function ColorMatchCard({ record }) {
           <dd>{formatUpdatedBy(record.updatedBy) || "—"}</dd>
         </div>
       </dl>
+
+      <div className="match-card__advanced">
+        <button
+          type="button"
+          className="match-card__advanced-toggle"
+          aria-expanded={showAdvanced}
+          onClick={() => setShowAdvanced((v) => !v)}
+        >
+          Advanced Setting
+          <span className={`match-card__advanced-caret${showAdvanced ? " match-card__advanced-caret--open" : ""}`} aria-hidden="true">
+            ▾
+          </span>
+        </button>
+
+        {showAdvanced && (
+          <div className="match-card__raw" role="region" aria-label="Original spreadsheet row">
+            <p className="match-card__raw-intro">
+              The row exactly as it appears in the source vendor chart — use this to double-check the match above
+              against the original file.
+            </p>
+
+            {raw ? (
+              <div className="match-card__raw-row-wrap">
+                <table className="match-card__raw-row">
+                  <thead>
+                    <tr>
+                      <th>Thread Name</th>
+                      <th>Color Category</th>
+                      <th>Thread Chart</th>
+                      <th>Thread Number</th>
+                      <th>Monitor Display Color</th>
+                      <th>PMS Number</th>
+                      <th>R</th>
+                      <th>G</th>
+                      <th>B</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{raw.threadName || "NA"}</td>
+                      <td>{raw.colorCategory || "—"}</td>
+                      <td>{raw.threadChart || "—"}</td>
+                      <td>{raw.threadNumber}</td>
+                      <td className="match-card__raw-color-cell">
+                        {rawHex && (
+                          <span
+                            className="match-card__raw-color-swatch"
+                            style={{ backgroundColor: rawHex }}
+                            aria-hidden="true"
+                          />
+                        )}
+                      </td>
+                      <td>{raw.pmsNumber || "—"}</td>
+                      <td>{raw.r ?? "—"}</td>
+                      <td>{raw.g ?? "—"}</td>
+                      <td>{raw.b ?? "—"}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="match-card__raw-empty">
+                No original spreadsheet row on file — this record was added or edited by hand rather than imported
+                from a vendor chart.
+              </p>
+            )}
+
+            <div className="match-card__raw-actions">
+              {record.sourceFile ? (
+                <a className="btn btn--primary" href={chartFileUrl(record.sourceFile)} download>
+                  Download Chart
+                </a>
+              ) : (
+                <span className="match-card__raw-empty">
+                  Original file not available for hand-entered records.
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

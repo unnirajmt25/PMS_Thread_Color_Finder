@@ -31,7 +31,7 @@ const SIMULATED_LATENCY_MS = 150;
 // a change (e.g. back when only the small bundled sample existed) would
 // keep serving that stale snapshot forever, since admin edits are
 // intentionally allowed to persist across reloads.
-const SEED_VERSION = 4;
+const SEED_VERSION = 5;
 
 const listeners = new Set();
 

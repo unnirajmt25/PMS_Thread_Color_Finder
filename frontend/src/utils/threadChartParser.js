@@ -93,6 +93,8 @@ export function parseTableRows(rows, vendor, threadBrand, { updatedAt, updatedBy
 
   const map = headerIndexMap(rows[0]);
   const iName = col(map, "thread name");
+  const iCategory = col(map, "color category");
+  const iChart = col(map, "thread chart");
   const iCode = col(map, "thread number");
   const iPms = col(map, "pms number");
   const iR = col(map, "r");
@@ -119,7 +121,8 @@ export function parseTableRows(rows, vendor, threadBrand, { updatedAt, updatedBy
     const hasRgb = [r, g, b].every((n) => Number.isFinite(n));
     const hex = hasRgb ? toHex(r, g, b) : "";
 
-    const { code: pmsCode, name: pmsName } = normalizePms(iPms !== -1 ? row[iPms] : "");
+    const rawPmsValue = iPms !== -1 ? row[iPms] : "";
+    const { code: pmsCode, name: pmsName } = normalizePms(rawPmsValue);
 
     const key = `${vendor}|${threadBrand}|${threadCode}|${pmsCode}`.toLowerCase();
     if (seenKeys.has(key)) {
@@ -144,6 +147,20 @@ export function parseTableRows(rows, vendor, threadBrand, { updatedAt, updatedBy
       notes: "",
       updatedAt,
       updatedBy,
+      // Untouched source-row values, kept so the UI can show exactly what
+      // the original spreadsheet row looked like (Admin's "Advanced
+      // Setting" raw-row view) — separate from the normalized fields
+      // above, which are what matching/search/display actually use.
+      raw: {
+        threadName: iName !== -1 ? String(row[iName] ?? "") : "",
+        colorCategory: iCategory !== -1 ? String(row[iCategory] ?? "") : "",
+        threadChart: iChart !== -1 ? String(row[iChart] ?? "") : "",
+        threadNumber: String(threadCode),
+        pmsNumber: String(rawPmsValue ?? ""),
+        r: iR !== -1 && row[iR] !== "" ? Number(row[iR]) : null,
+        g: iG !== -1 && row[iG] !== "" ? Number(row[iG]) : null,
+        b: iB !== -1 && row[iB] !== "" ? Number(row[iB]) : null,
+      },
     });
   }
 

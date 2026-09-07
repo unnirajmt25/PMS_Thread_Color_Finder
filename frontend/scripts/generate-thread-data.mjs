@@ -14,6 +14,10 @@ import { parseWorkbookToRecords } from "../src/utils/threadChartParser.js";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const SRC_DIR = path.join(SCRIPT_DIR, "..", "..", "Thread Chart");
 const OUT_PATH = path.join(SCRIPT_DIR, "..", "public", "data", "color-mappings.json");
+// Original workbooks are copied here so the Finder page's "Download Chart"
+// button can link straight to the source file an admin/designer can
+// cross-check a match against — no server round-trip needed.
+const CHARTS_OUT_DIR = path.join(SCRIPT_DIR, "..", "public", "thread-charts");
 // Stamped fresh every run — do not hardcode a date here, or "Last Updated"
 // in the UI silently goes stale the moment the source charts change again.
 const UPDATED_AT = new Date().toISOString().slice(0, 10);
@@ -29,6 +33,13 @@ const records = [];
 let duplicates = 0;
 let skippedNoThreadNumber = 0;
 
+fs.mkdirSync(CHARTS_OUT_DIR, { recursive: true });
+// Start clean so a chart removed/renamed from Thread Chart/ doesn't leave a
+// stale, now-undownloadable copy behind in public/thread-charts/.
+for (const stale of fs.readdirSync(CHARTS_OUT_DIR)) {
+  fs.rmSync(path.join(CHARTS_OUT_DIR, stale));
+}
+
 for (const file of files) {
   const vendor = vendorNameFromFile(file);
   const workbook = XLSX.readFile(path.join(SRC_DIR, file));
@@ -39,9 +50,15 @@ for (const file of files) {
     updatedBy: UPDATED_BY,
   });
 
+  for (const record of result.records) {
+    record.sourceFile = file;
+  }
+
   records.push(...result.records);
   duplicates += result.duplicates;
   skippedNoThreadNumber += result.skippedNoThreadNumber;
+
+  fs.copyFileSync(path.join(SRC_DIR, file), path.join(CHARTS_OUT_DIR, file));
 }
 
 fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
