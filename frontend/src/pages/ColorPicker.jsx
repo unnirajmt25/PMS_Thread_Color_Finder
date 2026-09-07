@@ -3,7 +3,6 @@ import { useColorData } from "../hooks/useColorData";
 import VendorSelector from "../components/VendorSelector";
 import OptionSelector from "../components/OptionSelector";
 import ColorSwatch from "../components/ColorSwatch";
-import StandardColorsModal from "../components/StandardColorsModal";
 import { findClosestThreads } from "../utils/colorMatch";
 import { extractDominantColors } from "../utils/dominantColors";
 import { generateId } from "../utils/color";
@@ -51,7 +50,6 @@ export default function ColorPicker() {
   const [vendor, setVendor] = useState("");
   const [threadBrand, setThreadBrand] = useState("");
   const [eyedropperBusy, setEyedropperBusy] = useState(false);
-  const [showStandardColors, setShowStandardColors] = useState(false);
 
   const eyedropperSupported = typeof window !== "undefined" && "EyeDropper" in window;
 
@@ -175,17 +173,10 @@ export default function ColorPicker() {
 
   return (
     <div className="page color-picker-page">
-      <header className="page-header color-picker-page__header">
-        <div>
-          <h1>Color Picker</h1>
-          <p>Upload a customer's image, pick colors from it, and find the closest matching thread.</p>
-        </div>
-        <button type="button" className="btn btn--ghost" onClick={() => setShowStandardColors(true)}>
-          Standard Thread
-        </button>
+      <header className="page-header">
+        <h1>Color Picker</h1>
+        <p>Upload a customer's image, pick colors from it, and find the closest matching thread.</p>
       </header>
-
-      {showStandardColors && <StandardColorsModal onClose={() => setShowStandardColors(false)} />}
 
       <div className="color-picker-layout">
         <section className="color-picker-image-panel">

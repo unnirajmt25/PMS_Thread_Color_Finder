@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { Link, NavLink, Route, Routes } from "react-router-dom";
 import Finder from "./pages/Finder";
 import Vendors from "./pages/Vendors";
 import ColorPicker from "./pages/ColorPicker";
 import Admin from "./pages/Admin";
+import StandardColorsModal from "./components/StandardColorsModal";
 
 function navClass({ isActive }) {
   return isActive ? "nav-link nav-link--active" : "nav-link";
 }
 
 export default function App() {
+  const [showStandardColors, setShowStandardColors] = useState(false);
+
   return (
     <div className="app-shell">
       <nav className="app-nav">
@@ -25,6 +29,9 @@ export default function App() {
           <NavLink to="/app/color-picker" className={navClass}>
             Color Picker
           </NavLink>
+          <button type="button" className="nav-link" onClick={() => setShowStandardColors(true)}>
+            Standard Thread
+          </button>
         </div>
         <div className="app-nav__admin">
           <NavLink to="/app/admin" className={navClass}>
@@ -42,6 +49,8 @@ export default function App() {
           <Route path="*" element={<Finder />} />
         </Routes>
       </main>
+
+      {showStandardColors && <StandardColorsModal onClose={() => setShowStandardColors(false)} />}
     </div>
   );
 }

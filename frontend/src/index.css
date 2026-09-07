@@ -114,12 +114,15 @@ textarea {
 }
 
 .nav-link {
+  background: none;
+  border: none;
+  border-bottom: 1.5px solid transparent;
   padding: 0.15rem 0;
   text-decoration: none;
   color: #345086;
   font-weight: 500;
   font-size: 0.9rem;
-  border-bottom: 1.5px solid transparent;
+  cursor: pointer;
 }
 
 .nav-link:hover {
@@ -147,8 +150,7 @@ textarea {
   margin: 0;
 }
 
-.admin-page__header,
-.color-picker-page__header {
+.admin-page__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
