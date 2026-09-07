@@ -405,6 +405,10 @@ export async function uploadVendorFile(label, file) {
   }
 
   const updatedAt = today();
+  // The file registry (unlike record-level `updatedAt`) shows a precise
+  // upload time in the Admin UI, so it gets a full timestamp rather than
+  // just a date.
+  const uploadedAt = new Date().toISOString();
   let parsed;
   let matchCount; // sheets (xlsx) or tables (pdf) successfully parsed
   let skippedNoThreadNumber;
@@ -481,7 +485,7 @@ export async function uploadVendorFile(label, file) {
   // Replace: this label's previous records (if any) are fully superseded.
   await persist([...cache.filter((r) => r.vendor !== trimmedLabel), ...stamped]);
 
-  const entry = { label: trimmedLabel, fileName: file.name, uploadedAt: updatedAt, recordCount: stamped.length };
+  const entry = { label: trimmedLabel, fileName: file.name, uploadedAt, recordCount: stamped.length };
   upsertVendorFileEntry(entry);
 
   return { ...entry, skippedNoThreadNumber, duplicates };
@@ -489,7 +493,8 @@ export async function uploadVendorFile(label, file) {
 
 export async function getVendorFiles() {
   await ready();
-  return [...vendorFiles].sort((a, b) => a.label.localeCompare(b.label));
+  // Most recently uploaded/replaced first.
+  return [...vendorFiles].sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
 }
 
 export async function deleteVendorFile(label) {

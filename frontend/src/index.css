@@ -188,6 +188,12 @@ textarea {
   color: var(--color-text-muted);
 }
 
+.field__hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .field__control {
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius);
