@@ -11,7 +11,9 @@ const ZOOM_STEP = 0.25;
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 3;
 const MATCHES_PER_PICK = 3;
-const AUTO_DETECT_COUNT = 8;
+const DEFAULT_AUTO_DETECT_COUNT = 8;
+const MIN_AUTO_DETECT_COUNT = 1;
+const MAX_AUTO_DETECT_COUNT = 20;
 
 function rgbToHex(r, g, b) {
   return `#${[r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
@@ -50,6 +52,7 @@ export default function ColorPicker() {
   const [vendor, setVendor] = useState("");
   const [threadBrand, setThreadBrand] = useState("");
   const [eyedropperBusy, setEyedropperBusy] = useState(false);
+  const [autoDetectCount, setAutoDetectCount] = useState(DEFAULT_AUTO_DETECT_COUNT);
 
   const eyedropperSupported = typeof window !== "undefined" && "EyeDropper" in window;
 
@@ -150,8 +153,14 @@ export default function ColorPicker() {
     const canvas = canvasRef.current;
     if (!canvas || !imageLoaded) return;
     const imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
-    const dominant = extractDominantColors(imageData, { count: AUTO_DETECT_COUNT });
+    const dominant = extractDominantColors(imageData, { count: autoDetectCount });
     setPicks(dominant.map(({ hex, r, g, b }) => ({ id: generateId(), hex, r, g, b, x: null, y: null })));
+  }
+
+  function handleAutoDetectCountChange(value) {
+    const parsed = Math.round(Number(value));
+    if (!Number.isFinite(parsed)) return;
+    setAutoDetectCount(Math.min(MAX_AUTO_DETECT_COUNT, Math.max(MIN_AUTO_DETECT_COUNT, parsed)));
   }
 
   function removePick(id) {
@@ -256,15 +265,29 @@ export default function ColorPicker() {
               </p>
 
               <div className="color-picker-toolbar">
-                <button
-                  type="button"
-                  className="btn btn--primary btn--sm"
-                  onClick={handleAutoDetect}
-                  disabled={!imageLoaded}
-                  title="Replace the palette with this image's dominant colors"
-                >
-                  Auto-Detect Colors
-                </button>
+                <div className="color-picker-autodetect">
+                  <label htmlFor="auto-detect-count" className="color-picker-autodetect__label">
+                    Colors to detect
+                  </label>
+                  <input
+                    id="auto-detect-count"
+                    type="number"
+                    className="color-picker-autodetect__input"
+                    min={MIN_AUTO_DETECT_COUNT}
+                    max={MAX_AUTO_DETECT_COUNT}
+                    value={autoDetectCount}
+                    onChange={(e) => handleAutoDetectCountChange(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    onClick={handleAutoDetect}
+                    disabled={!imageLoaded}
+                    title="Find this many dominant colors from the image's main/central area, ignoring edges and small/noisy specks"
+                  >
+                    Auto-Detect Colors
+                  </button>
+                </div>
                 <button
                   type="button"
                   className="btn btn--ghost btn--sm"

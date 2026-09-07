@@ -1287,6 +1287,29 @@ textarea {
   border-top: 1px solid var(--color-border);
 }
 
+.color-picker-autodetect {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.color-picker-autodetect__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.color-picker-autodetect__input {
+  width: 3.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+}
+
 .color-picker-palette-panel__header {
   display: flex;
   align-items: baseline;
