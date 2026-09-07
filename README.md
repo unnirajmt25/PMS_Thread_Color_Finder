@@ -1,16 +1,40 @@
-# React + Vite
+# Thread Color Finder / IDY Thread Intelligence
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+This repository holds two related projects, kept in **separate top-level
+folders** so each has its own dependencies, its own lifecycle, and can be
+worked on independently:
 
-Currently, two official plugins are available:
+```
+.
+├── frontend/    React + Vite web app (the live "Thread Color Finder" tool),
+│                plus python-thred-finder/, a small standalone Python CLI
+│                that does the same PMS lookup from the command line.
+│
+├── backend/     IDY Thread Chart Management & Embroidery Color Intelligence
+│                Platform — the Python + Microsoft SQL Server backend
+│                (data profiling, and eventually the import pipeline,
+│                canonical database, and API). See backend/README.md.
+│
+└── Thread Chart/  Shared raw input data: the 30 vendor thread-chart Excel
+                    workbooks. Read by frontend/scripts/generate-thread-data.mjs,
+                    frontend/python-thred-finder/, AND backend/scripts/profile_workbooks.py
+                    — this is why it lives at the repo root rather than inside
+                    either subproject.
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Which one do I want?
 
-## React Compiler
+- **Using or developing the web app right now?** → `frontend/` —
+  `cd frontend && npm install && npm run dev`.
+- **Working on the new SQL Server-backed platform (data profiling, import
+  pipeline, canonical schema)?** → `backend/` — see `backend/README.md`.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Why they're separate
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+`frontend/` and `backend/` have independent dependency trees (npm vs.
+pip), independent test suites, and are at very different maturity levels
+(`frontend/` is a working production tool; `backend/` is Phase 1,
+Milestone 1 — data discovery only, no schema yet). Keeping them as
+sibling folders means neither's tooling (node_modules/, .venv/, lint
+configs) leaks into the other, while `Thread Chart/` stays a single
+shared source of truth both can read from without either one owning it.

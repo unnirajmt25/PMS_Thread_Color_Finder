@@ -1,0 +1,85 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "idy-thread-intelligence"
+version = "0.1.0"
+description = "IDY Thread Chart Management & Embroidery Color Intelligence Platform"
+readme = "README.md"
+# Target is 3.12+ (see docs/decisions/0001-python-version.md for the interim
+# 3.9 gap on this dev machine). Code avoids 3.10+-only syntax (e.g. `X | Y`
+# unions are written as `from __future__ import annotations` + string
+# annotations) so it runs unmodified on either.
+requires-python = ">=3.9"
+license = { text = "Proprietary" }
+authors = [{ name = "iDynamics", email = "ai.ids@idynamics.com" }]
+
+dependencies = [
+    "sqlalchemy>=2.0",
+    # greenlet (pulled in transitively by sqlalchemy/uvicorn) dropped
+    # prebuilt Python 3.9 wheels starting at 3.2 — without this pin, pip
+    # tries to compile it from source and fails without MSVC Build Tools.
+    # Remove this pin once the interpreter is upgraded to 3.12+ (see
+    # docs/decisions/0001-python-version.md).
+    "greenlet<3.2; python_version < \"3.10\"",
+    "pyodbc>=5.1",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "alembic>=1.13",
+    "typer>=0.12",
+    "rich>=13.7",
+    "openpyxl>=3.1",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.4",
+    "mypy>=1.9",
+]
+
+[project.scripts]
+idy = "idy_thread.cli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py39"
+# Alembic-generated revision files follow Alembic's own template, not this
+# project's style; hand-editing them to satisfy the linter fights the tool
+# that regenerates them.
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint.per-file-ignores]
+# Typer's documented pattern requires calling typer.Argument()/typer.Option()
+# as parameter defaults — not the "mutable default" footgun B008 guards against.
+"src/idy_thread/cli/*.py" = ["B008"]
+# Pydantic models must keep Optional[X] (not `X | None`) while targeting
+# Python 3.9: Pydantic evaluates field annotations at class-definition time
+# to build its schema, so `from __future__ import annotations` (which only
+# defers *parsing*, not evaluation) doesn't help — `X | None` genuinely
+# needs 3.10+ at runtime. See docs/decisions/0001-python-version.md.
+"src/idy_thread/infrastructure/parsers/profile_models.py" = ["UP045"]
+# SQLAlchemy 2.0 Mapped[...] annotations have the exact same Python 3.9
+# runtime-evaluation constraint as Pydantic above: keep Optional[X], not
+# `X | None` (UP045/FA100). Cross-module relationship() targets are quoted
+# forward references SQLAlchemy resolves via its own mapper registry, not
+# via a plain name lookup in this module's namespace — ruff's "unsafe fix"
+# to unquote them (UP037) would break at mapper-configuration time even
+# though a `TYPE_CHECKING`-only import makes the name look resolvable.
+"src/idy_thread/domain/*/models.py" = ["UP045", "UP037", "FA100"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -15,6 +15,10 @@ dist-ssr
 # Excel lock files (created while a workbook is open)
 ~$*.xlsx
 
+# python-thred-finder's CLI caches parsed workbook data alongside the
+# source files.
+Thread Chart/.thred_finder_cache.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
