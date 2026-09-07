@@ -162,18 +162,64 @@ export default function ColorPicker() {
     setPicks((prev) => [...prev, { id: generateId(), hex, r, g, b, x, y }]);
   }
 
-  function handleCanvasClick(e) {
+  // Shared by "click the image to add a color" and "drag an existing
+  // marker to reposition it" - both need to turn a mouse position into an
+  // image-pixel coordinate plus the color actually sampled there.
+  function samplePixelAtClientPoint(clientX, clientY) {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const x = Math.floor((e.clientX - rect.left) * scaleX);
-    const y = Math.floor((e.clientY - rect.top) * scaleY);
-    if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return;
+    const x = Math.min(canvas.width - 1, Math.max(0, Math.floor((clientX - rect.left) * scaleX)));
+    const y = Math.min(canvas.height - 1, Math.max(0, Math.floor((clientY - rect.top) * scaleY)));
+    if (clientX - rect.left < 0 || clientY - rect.top < 0 || clientX - rect.left >= rect.width || clientY - rect.top >= rect.height) {
+      return null;
+    }
     const [r, g, b] = canvas.getContext("2d").getImageData(x, y, 1, 1).data;
-    addPick(rgbToHex(r, g, b), r, g, b, x, y);
+    return { x, y, r, g, b, hex: rgbToHex(r, g, b) };
   }
+
+  function handleCanvasClick(e) {
+    const sample = samplePixelAtClientPoint(e.clientX, e.clientY);
+    if (!sample) return;
+    addPick(sample.hex, sample.r, sample.g, sample.b, sample.x, sample.y);
+  }
+
+  // Dragging an existing marker re-samples the color at wherever it's
+  // dropped, rather than just moving the pin visually - so fixing an
+  // auto-detected marker's position also fixes which pixel its color
+  // actually comes from.
+  const [draggingPickId, setDraggingPickId] = useState(null);
+
+  function handleMarkerPointerDown(e, pickId) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingPickId(pickId);
+  }
+
+  useEffect(() => {
+    if (!draggingPickId) return;
+
+    function handlePointerMove(e) {
+      const sample = samplePixelAtClientPoint(e.clientX, e.clientY);
+      if (!sample) return;
+      setPicks((prev) =>
+        prev.map((p) => (p.id === draggingPickId ? { ...p, ...sample } : p))
+      );
+    }
+    function handlePointerUp() {
+      setDraggingPickId(null);
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- samplePixelAtClientPoint reads refs, not state
+  }, [draggingPickId]);
 
   async function handleEyedropper() {
     if (!eyedropperSupported) return;
@@ -297,13 +343,15 @@ export default function ColorPicker() {
                       .map((p, i) => (
                         <span
                           key={p.id}
-                          className="color-picker-marker"
+                          className={`color-picker-marker${draggingPickId === p.id ? " color-picker-marker--dragging" : ""}`}
                           style={{
                             left: `${(p.x / canvasRef.current.width) * 100}%`,
                             top: `${(p.y / canvasRef.current.height) * 100}%`,
                           }}
-                          title={`${i + 1}: ${p.hex}`}
+                          title={`${i + 1}: ${p.hex} — drag to reposition`}
+                          onPointerDown={(e) => handleMarkerPointerDown(e, p.id)}
                         >
+                          <span className="color-picker-marker__dot" />
                           <span className="color-picker-marker__badge">{i + 1}</span>
                         </span>
                       ))}
