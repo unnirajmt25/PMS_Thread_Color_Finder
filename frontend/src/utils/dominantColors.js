@@ -106,5 +106,19 @@ export function extractDominantColors(
     picked.push(candidate);
   }
 
+  // The diversity filter above can leave fewer than `count` picks even
+  // when plenty of real, sufficiently large color regions exist (e.g. a
+  // photo with several close shades of one hue) - the number entered
+  // should be how many colors come back, not just an upper bound. Fill
+  // any remaining slots from the same ranked list, largest first, now
+  // ignoring closeness to what's already picked.
+  if (picked.length < count) {
+    for (const candidate of ranked) {
+      if (picked.length >= count) break;
+      if (picked.includes(candidate)) continue;
+      picked.push(candidate);
+    }
+  }
+
   return picked.map(({ r, g, b, coverage }) => ({ r, g, b, coverage, hex: rgbToHex(r, g, b) }));
 }
