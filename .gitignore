@@ -33,3 +33,6 @@ Thread Chart/.thred_finder_cache.json
 # Detailed internal project notes — kept local, not published to GitHub.
 # The public-facing overview lives in README.md instead.
 readme_project_details.md
+
+# Memory/dependency graph — internal architectural notes, kept local.
+MemoryGraph.md
