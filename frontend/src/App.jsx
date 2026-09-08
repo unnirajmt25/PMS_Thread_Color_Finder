@@ -27,10 +27,10 @@ export default function App() {
             Vendors
           </NavLink>
           <NavLink to="/app/color-picker" className={navClass}>
-            Color Picker
+            Color Explorer
           </NavLink>
           <button type="button" className="nav-link" onClick={() => setShowStandardColors(true)}>
-            Standard Thread
+            Standard PMS
           </button>
         </div>
         <div className="app-nav__admin">

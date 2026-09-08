@@ -168,7 +168,7 @@ export default function ColorMatchCard({ record }) {
           aria-expanded={showAdvanced}
           onClick={() => setShowAdvanced((v) => !v)}
         >
-          Advanced Setting
+          Reference 
           <span className={`match-card__advanced-caret${showAdvanced ? " match-card__advanced-caret--open" : ""}`} aria-hidden="true">
             ▾
           </span>
@@ -186,6 +186,7 @@ export default function ColorMatchCard({ record }) {
                 <table className="match-card__raw-row">
                   <thead>
                     <tr>
+                      <th>SL No</th>
                       <th>Thread Name</th>
                       <th>Color Category</th>
                       <th>Thread Chart</th>
@@ -199,6 +200,7 @@ export default function ColorMatchCard({ record }) {
                   </thead>
                   <tbody>
                     <tr>
+                      <td>{raw.rowNumber ?? "—"}</td>
                       <td>{raw.threadName || "NA"}</td>
                       <td>{raw.colorCategory || "—"}</td>
                       <td>{raw.threadChart || "—"}</td>

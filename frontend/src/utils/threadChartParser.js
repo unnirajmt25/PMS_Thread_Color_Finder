@@ -128,7 +128,12 @@ export function parseTableRows(
     return { records, skippedNoThreadNumber, duplicates, matched: false };
   }
 
-  for (const row of rows.slice(1)) {
+  for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex];
+    // Row 1 (array index 0) is the header, so a data row at array index 1
+    // is literally Excel row 2 - matches what you'd see counting down the
+    // source file, for cross-checking a record against it.
+    const excelRowNumber = rowIndex + 1;
     const threadCode = row[iCode];
     if (threadCode === "" || threadCode === undefined) {
       skippedNoThreadNumber++;
@@ -178,6 +183,7 @@ export function parseTableRows(
       // Setting" raw-row view) — separate from the normalized fields
       // above, which are what matching/search/display actually use.
       raw: {
+        rowNumber: excelRowNumber,
         threadName: iName !== -1 ? String(row[iName] ?? "") : "",
         colorCategory: iCategory !== -1 ? String(row[iCategory] ?? "") : "",
         threadChart: iChart !== -1 ? String(row[iChart] ?? "") : "",

@@ -279,7 +279,7 @@ export default function ColorPicker() {
   return (
     <div className="page color-picker-page">
       <header className="page-header">
-        <h1>Color Picker</h1>
+        <h1>Color Explorer</h1>
         <p>Upload a customer's image, pick colors from it, and find the closest matching thread.</p>
       </header>
 
