@@ -1194,20 +1194,22 @@ textarea {
   max-width: none;
 }
 
-/* A small dot pinned exactly at the sampled pixel, with the numbered
-   badge floating above it (not centered on top of it) so the badge never
-   hides the actual color spot it's marking. The marker itself is a
-   larger invisible hit area (22x22) centered on that same point, so it's
-   easy to grab and drag even though the visible dot is tiny - dragging
-   re-samples the color at wherever it's dropped. */
+/* The numbered badge sits centered directly on the sampled pixel. The
+   marker itself is a larger invisible hit area (26x26) centered on that
+   same point, so it's easy to grab and drag even though the visible
+   badge is smaller - dragging re-samples the color at wherever it's
+   dropped. */
 .color-picker-marker {
   position: absolute;
   transform: translate(-50%, -50%);
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   cursor: grab;
   touch-action: none;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .color-picker-marker--dragging {
@@ -1215,29 +1217,7 @@ textarea {
   z-index: 2;
 }
 
-.color-picker-marker__dot {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  border: 1.5px solid #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-}
-
-.color-picker-marker--dragging .color-picker-marker__dot {
-  width: 10px;
-  height: 10px;
-}
-
 .color-picker-marker__badge {
-  position: absolute;
-  left: 50%;
-  bottom: 100%;
-  transform: translate(-50%, -5px);
   width: 1.4rem;
   height: 1.4rem;
   border-radius: 50%;

@@ -351,7 +351,6 @@ export default function ColorPicker() {
                           title={`${i + 1}: ${p.hex} — drag to reposition`}
                           onPointerDown={(e) => handleMarkerPointerDown(e, p.id)}
                         >
-                          <span className="color-picker-marker__dot" />
                           <span className="color-picker-marker__badge">{i + 1}</span>
                         </span>
                       ))}
