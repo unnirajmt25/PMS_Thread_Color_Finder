@@ -1177,10 +1177,17 @@ textarea {
 
 .color-picker-image-viewport {
   position: relative;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .color-picker-canvas-scroll {
   max-height: 32rem;
+  /* Hugs the image's actual rendered size instead of staying at a fixed
+     full-width box - without this, zooming out shrinks the canvas but
+     leaves a dead strip of checkered background where it used to be. */
+  width: fit-content;
+  max-width: 100%;
   overflow: auto;
   border-radius: 10px;
   background: repeating-conic-gradient(#e9edf5 0% 25%, #f7f9fc 0% 50%) 0 0 / 20px 20px;
