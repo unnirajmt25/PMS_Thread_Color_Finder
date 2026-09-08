@@ -315,6 +315,7 @@ export default function ColorPicker() {
 
           {imageUrl && (
             <>
+              <div className="color-picker-image-viewport">
               <div className="color-picker-canvas-scroll" ref={scrollRef}>
                 <div className="color-picker-canvas-wrap">
                   {/* eslint-disable-next-line jsx-a11y/alt-text -- decorative source for canvas, never shown itself */}
@@ -355,6 +356,30 @@ export default function ColorPicker() {
                         </span>
                       ))}
                 </div>
+              </div>
+
+              <div className="color-picker-zoom">
+                <button
+                  type="button"
+                  className="color-picker-zoom__btn"
+                  onClick={() => setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)))}
+                  disabled={zoom <= MIN_ZOOM}
+                  aria-label="Zoom out"
+                  title="Zoom out"
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  className="color-picker-zoom__btn"
+                  onClick={() => setZoom((z) => Math.min(MAX_ZOOM, +(z + ZOOM_STEP).toFixed(2)))}
+                  disabled={zoom >= MAX_ZOOM}
+                  aria-label="Zoom in"
+                  title="Zoom in"
+                >
+                  +
+                </button>
+              </div>
               </div>
               <p className="color-picker-hint">
                 Click anywhere on the image to add its color, or use Auto-Detect Colors to find the main colors
@@ -402,22 +427,6 @@ export default function ColorPicker() {
                   title={eyedropperSupported ? "Pick a color from anywhere on screen" : "Not supported in this browser"}
                 >
                   Eyedropper
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => setZoom((z) => Math.min(MAX_ZOOM, +(z + ZOOM_STEP).toFixed(2)))}
-                  disabled={zoom >= MAX_ZOOM}
-                >
-                  Zoom In
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)))}
-                  disabled={zoom <= MIN_ZOOM}
-                >
-                  Zoom Out
                 </button>
                 <button type="button" className="btn btn--ghost btn--sm" onClick={resetAll}>
                   Reset

@@ -1175,11 +1175,55 @@ textarea {
   margin-bottom: 1rem;
 }
 
+.color-picker-image-viewport {
+  position: relative;
+}
+
 .color-picker-canvas-scroll {
   max-height: 32rem;
   overflow: auto;
   border-radius: 10px;
   background: repeating-conic-gradient(#e9edf5 0% 25%, #f7f9fc 0% 50%) 0 0 / 20px 20px;
+}
+
+/* Floats over the bottom-right corner of the image viewport, staying put
+   regardless of how far the image itself is scrolled/zoomed underneath it -
+   icon-only so it doesn't compete with the toolbar below for space. */
+.color-picker-zoom {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  display: flex;
+  gap: 0.4rem;
+  z-index: 3;
+}
+
+.color-picker-zoom__btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  color: var(--color-text);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.color-picker-zoom__btn:hover:not(:disabled) {
+  background: #fff;
+  color: var(--color-primary);
+}
+
+.color-picker-zoom__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .color-picker-canvas-wrap {
