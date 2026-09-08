@@ -29,3 +29,7 @@ Thread Chart/.thred_finder_cache.json
 *.njsproj
 *.sln
 *.sw?
+
+# Detailed internal project notes — kept local, not published to GitHub.
+# The public-facing overview lives in README.md instead.
+readme_project_details.md
